@@ -327,6 +327,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "getitemvalue",   SEC_DEVELOPER,      false, &ChatHandler::HandleDebugGetItemValueCommand,        "", nullptr },
         { "getvaluebyindex",SEC_DEVELOPER,      false, &ChatHandler::HandleDebugGetValueByIndexCommand,     "", nullptr },
         { "getvaluebyname", SEC_DEVELOPER,      false, &ChatHandler::HandleDebugGetValueByNameCommand,      "", nullptr },
+        { "getprevplaytime", SEC_DEVELOPER,     false, &ChatHandler::HandleDebugGetPrevPlayTimeCommand,     "", nullptr },
         { "moditemvalue",   SEC_DEVELOPER,      false, &ChatHandler::HandleDebugModItemValueCommand,        "", nullptr },
         { "modvalue",       SEC_DEVELOPER,      false, &ChatHandler::HandleDebugModValueCommand,            "", nullptr },
         { "play",           SEC_TICKETMASTER,   false, nullptr,                                             "", debugPlayCommandTable },
@@ -334,7 +335,8 @@ ChatCommand * ChatHandler::getCommandTable()
         { "setaurastate",   SEC_DEVELOPER,      false, &ChatHandler::HandleDebugSetAuraStateCommand,        "", nullptr },
         { "setitemvalue",   SEC_DEVELOPER,      false, &ChatHandler::HandleDebugSetItemValueCommand,        "", nullptr },
         { "setvaluebyindex",SEC_DEVELOPER,      false, &ChatHandler::HandleDebugSetValueByIndexCommand,     "", nullptr },
-        { "setvaluebyname", SEC_DEVELOPER,      false, &ChatHandler::HandleDebugSetValueByNameCommand,     "", nullptr },
+        { "setvaluebyname", SEC_DEVELOPER,      false, &ChatHandler::HandleDebugSetValueByNameCommand,      "", nullptr },
+        { "setprevplaytime", SEC_DEVELOPER,     false, &ChatHandler::HandleDebugSetPrevPlayTimeCommand,     "", nullptr },
         { "spellcheck",     SEC_CONSOLE,        true,  &ChatHandler::HandleDebugSpellCheckCommand,          "", nullptr },
         { "spellcoefs",     SEC_DEVELOPER,      true,  &ChatHandler::HandleDebugSpellCoefsCommand,          "", nullptr },
         { "spellmods",      SEC_DEVELOPER,      false, &ChatHandler::HandleDebugSpellModsCommand,           "", nullptr },
@@ -489,6 +491,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "all_mytalents",  SEC_DEVELOPER,      false, &ChatHandler::HandleLearnAllMyTalentsCommand,   "", nullptr },
         { "all_mytaxis",    SEC_TICKETMASTER,   false, &ChatHandler::HandleLearnAllMyTaxisCommand,     "", nullptr },
         { "all_recipes",    SEC_GAMEMASTER,     false, &ChatHandler::HandleLearnAllRecipesCommand,     "", nullptr },
+        { "all_trainer",    SEC_GAMEMASTER,     false, &ChatHandler::HandleLearnAllTrainerCommand,     "", nullptr },
         { "",               SEC_DEVELOPER,      false, &ChatHandler::HandleLearnCommand,               "", nullptr },
         { nullptr,          0,                  false, nullptr,                                        "", nullptr }
     };
@@ -506,6 +509,7 @@ ChatCommand * ChatHandler::getCommandTable()
     {
         { "auras",          SEC_TICKETMASTER,  false, &ChatHandler::HandleListAurasCommand,          "", nullptr },
         { "creature",       SEC_TICKETMASTER,  true,  &ChatHandler::HandleListCreatureCommand,       "", nullptr },
+        { "clicktomove",    SEC_TICKETMASTER,  true,  &ChatHandler::HandleListClickToMoveCommand,    "", nullptr },
         { "exploredareas",  SEC_TICKETMASTER,  false, &ChatHandler::HandleListExploredAreasCommand,  "", nullptr },
         { "item",           SEC_TICKETMASTER,  true,  &ChatHandler::HandleListItemCommand,           "", nullptr },
         { "object",         SEC_TICKETMASTER,  true,  &ChatHandler::HandleListObjectCommand,         "", nullptr },
@@ -695,7 +699,21 @@ ChatCommand * ChatHandler::getCommandTable()
 
     static ChatCommand unitShowCommandTable[] =
     {
-        { "state",          SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowStateCommand,       "", nullptr },
+        { "race",           SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowRaceCommand,        "", nullptr },
+        { "class",          SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowClassCommand,       "", nullptr },
+        { "gender",         SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowGenderCommand,      "", nullptr },
+        { "powertype",      SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowPowerTypeCommand,   "", nullptr },
+        { "form",           SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowFormCommand,        "", nullptr },
+        { "visflags",       SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowVisFlagsCommand,    "", nullptr },
+        { "miscflags",      SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowMiscFlagsCommand,   "", nullptr },
+        { "emotestate",     SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowEmoteStateCommand,  "", nullptr },
+        { "standstate",     SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowStandStateCommand,  "", nullptr },
+        { "sheathstate",    SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowSheathStateCommand, "", nullptr },
+        { "unitstate",      SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowUnitStateCommand,   "", nullptr },
+        { "unitflags",      SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowUnitFlagsCommand,   "", nullptr },
+        { "npcflags",       SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowNPCFlagsCommand,    "", nullptr },
+        { "moveflags",      SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowMoveFlagsCommand,   "", nullptr },
+        { "createspell",    SEC_MODERATOR,      false, &ChatHandler::HandleUnitShowCreateSpellCommand, "", nullptr },
         { nullptr,          0,                  false, nullptr,                                        "", nullptr }
     };
 
@@ -706,6 +724,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { "speedinfo",      SEC_MODERATOR,      false, &ChatHandler::HandleUnitSpeedInfoCommand,       "", nullptr },
         { "statinfo",       SEC_MODERATOR,      false, &ChatHandler::HandleUnitStatInfoCommand,        "", nullptr },
         { "ufinfo",         SEC_DEVELOPER,      false, &ChatHandler::HandleUnitUpdateFieldsInfoCommand,"", nullptr },
+        { "factioninfo",    SEC_MODERATOR,      false, &ChatHandler::HandleUnitFactionInfoCommand,     "", nullptr },
         { "show",           SEC_MODERATOR,      false, nullptr,                                        "", unitShowCommandTable },
         { nullptr,          0,                  false, nullptr,                                        "", nullptr }
     };
@@ -1843,13 +1862,13 @@ bool ChatHandler::ParseCommands(char const* text)
     MANGOS_ASSERT(text);
     MANGOS_ASSERT(*text);
 
-    /// chat case (.command or !command format)
+    // chat case (.command or !command format)
     if (m_session)
     {
         if (text[0] != '!' && text[0] != '.')
             return false;
 
-        /// ignore single . and ! in line
+        // ignore single . and ! in line
         if (strlen(text) < 2)
             return false;
 
@@ -1857,11 +1876,11 @@ bool ChatHandler::ParseCommands(char const* text)
             return false;
     }
 
-    /// ignore messages staring from many dots.
+    // ignore messages staring from many dots.
     if ((text[0] == '.' && text[1] == '.') || (text[0] == '!' && text[1] == '!'))
         return false;
 
-    /// skip first . or ! (in console allowed use command with . and ! and without its)
+    // skip first . or ! (in console allowed use command with . and ! and without its)
     if (text[0] == '!' || text[0] == '.')
         ++text;
 
@@ -2018,7 +2037,7 @@ bool ChatHandler::isValidChatMessage(char const* message)
     ItemPrototype const* linkedItem = nullptr;
     SpellEntry const* linkedSpell = nullptr;
 
-    std::list<int> properties;
+    std::vector<int> properties;
 
     while (!reader.eof())
     {
@@ -2343,8 +2362,10 @@ void ChatHandler::BuildChatPacket(WorldPacket& data, ChatMsg msgtype, char const
     switch (msgtype)
     {
         case CHAT_MSG_MONSTER_WHISPER:
-        //case CHAT_MSG_RAID_BOSS_WHISPER:
+#if SUPPORTED_CLIENT_BUILD > CLIENT_BUILD_1_11_2
+        case CHAT_MSG_RAID_BOSS_WHISPER:
         case CHAT_MSG_RAID_BOSS_EMOTE:
+#endif
         case CHAT_MSG_MONSTER_EMOTE:
             MANGOS_ASSERT(senderName);
             data << uint32(strlen(senderName) + 1);
@@ -3567,7 +3588,7 @@ uint32 ChatHandler::ExtractAccountId(char** args, std::string* accountName /*= n
 {
     uint32 account_id = 0;
 
-    ///- Get the account name from the command line
+    // Get the account name from the command line
     char* account_str = ExtractLiteralArg(args);
 
     if (!account_str)
@@ -3575,7 +3596,7 @@ uint32 ChatHandler::ExtractAccountId(char** args, std::string* accountName /*= n
         if (!targetIfNullArg)
             return 0;
 
-        /// only target player different from self allowed (if targetPlayer!=nullptr then not console)
+        // only target player different from self allowed (if targetPlayer!=nullptr then not console)
         Player* targetPlayer = GetSelectedPlayer();
         if (!targetPlayer)
             return 0;

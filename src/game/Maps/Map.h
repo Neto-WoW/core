@@ -505,7 +505,7 @@ class Map : public GridRefManager<NGridType>
         Creature* GetAnyTypeCreature(ObjectGuid guid);      // normal creature or pet
         GenericTransport* GetTransport(ObjectGuid guid);
         ElevatorTransport* GetElevatorTransport(ObjectGuid);
-        DynamicObject* GetDynamicObject(ObjectGuid guid);
+        DynamicObject* GetDynamicObject(ObjectGuid guid) { return GetObject<DynamicObject>(guid); }
         Corpse* GetCorpse(ObjectGuid guid);                   // !!! find corpse can be not in world
         Unit* GetUnit(ObjectGuid guid);                       // only use if sure that need objects at current map, specially for player case
         WorldObject* GetWorldObject(ObjectGuid guid);         // only use if sure that need objects at current map, specially for player case
@@ -513,12 +513,12 @@ class Map : public GridRefManager<NGridType>
 
         template <typename T> void InsertObject(ObjectGuid const& guid, T* ptr)
         {
-            std::unique_lock<std::shared_timed_mutex> lock(m_objectsStore_lock);
+            std::lock_guard<std::shared_timed_mutex> lock(m_objectsStore_lock);
             m_objectsStore.insert<T>(guid, ptr);
         }
         template <typename T> void EraseObject(ObjectGuid const& guid)
         {
-            std::unique_lock<std::shared_timed_mutex> lock(m_objectsStore_lock);
+            std::lock_guard<std::shared_timed_mutex> lock(m_objectsStore_lock);
             m_objectsStore.erase<T>(guid, (T*)nullptr);
         }
         template <typename T> T* GetObject(ObjectGuid const& guid)
@@ -555,6 +555,7 @@ class Map : public GridRefManager<NGridType>
         bool GetWalkHitPosition(GenericTransport* t, float srcX, float srcY, float srcZ, float& destX, float& destY, float& destZ, 
             uint32 moveAllowedFlags = 0xF /*NAV_GROUND | NAV_WATER | NAV_MAGMA | NAV_SLIME*/, float zSearchDist = 20.0f, bool locatedOnSteepSlope = true) const;
         bool GetWalkRandomPosition(GenericTransport* t, float &x, float &y, float &z, float maxRadius, uint32 moveAllowedFlags = 0xF) const;
+        bool GetSwimRandomPosition(float& x, float& y, float& z, float radius, GridMapLiquidData& liquid_status, bool randomRange = true) const;
         VMAP::ModelInstance* FindCollisionModel(float x1, float y1, float z1, float x2, float y2, float z2);
 
         void Balance() { _dynamicTree.balance(); }
@@ -639,15 +640,15 @@ class Map : public GridRefManager<NGridType>
         bool                    _processingSendObjUpdates = false;
         uint32                  _objUpdatesThreads = 0;
         mutable std::mutex      i_objectsToClientUpdate_lock;
-        std::set<Object *>      i_objectsToClientUpdate;
+        std::unordered_set<Object *> i_objectsToClientUpdate;
 
         bool                    _processingUnitsRelocation = false;
         uint32                  _unitRelocationThreads = 0;
         mutable std::mutex      i_unitsRelocated_lock;
-        std::set<Unit* >        i_unitsRelocated;
+        std::unordered_set<Unit* > i_unitsRelocated;
 
         mutable std::mutex      unitsMvtUpdate_lock;
-        std::set<Unit*>         unitsMvtUpdate;
+        std::unordered_set<Unit*> unitsMvtUpdate;
 
         mutable MapMutexType    _corpseRemovalLock;
         typedef std::list<std::pair<Corpse*, ObjectGuid>> CorpseRemoveList;
@@ -853,6 +854,8 @@ class Map : public GridRefManager<NGridType>
         bool ScriptCommand_SetCommandState(ScriptInfo const& script, WorldObject* source, WorldObject* target);
         bool ScriptCommand_PlayCustomAnim(ScriptInfo const& script, WorldObject* source, WorldObject* target);
         bool ScriptCommand_StartScriptOnGroup(ScriptInfo const& script, WorldObject* source, WorldObject* target);
+        bool ScriptCommand_LoadCreatureSpawn(ScriptInfo const& script, WorldObject* source, WorldObject* target);
+        bool ScriptCommand_StartScriptOnZone(ScriptInfo const& script, WorldObject* source, WorldObject* target);
 
         // Add any new script command functions to the array.
         ScriptCommandFunction const m_ScriptCommands[SCRIPT_COMMAND_MAX] =
@@ -948,6 +951,8 @@ class Map : public GridRefManager<NGridType>
             &Map::ScriptCommand_SetCommandState,        // 88
             &Map::ScriptCommand_PlayCustomAnim,         // 89
             &Map::ScriptCommand_StartScriptOnGroup,     // 90
+            &Map::ScriptCommand_LoadCreatureSpawn,      // 91
+            &Map::ScriptCommand_StartScriptOnZone,      // 92
         };
 
     public:
@@ -987,6 +992,7 @@ class DungeonMap : public Map
 
         // can't be nullptr for loaded map
         DungeonPersistentState* GetPersistanceState() const;
+        void BindPlayerOrGroupOnEnter(Player* player);
 
         void InitVisibilityDistance() override;
         // Activated at raid expiration. No one can enter.

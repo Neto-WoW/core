@@ -250,9 +250,9 @@ SpellProcEventTriggerCheck Unit::IsTriggeredAtSpellProcEvent(Unit* pVictim, Spel
     if (spellProto->Id == 14076 || spellProto->Id == 14094 || spellProto->Id == 14095)
         return SPELL_PROC_TRIGGER_FAILED;
 
-    /// [TODO]
-    /// Delete all these spells, and manage it via the DB (spell_proc_event)
-    if (procSpell && !(procExtra && PROC_EX_CAST_END))
+    // [TODO]
+    // Delete all these spells, and manage it via the DB (spell_proc_event)
+    if (procSpell && !(procExtra & PROC_EX_CAST_END))
     {
 #if SUPPORTED_CLIENT_BUILD > CLIENT_BUILD_1_8_4
         // Eye for an Eye
@@ -342,15 +342,13 @@ SpellProcEventTriggerCheck Unit::IsTriggeredAtSpellProcEvent(Unit* pVictim, Spel
         // Chance of proc calculated after.
         if (spellProto->EffectApplyAuraName[0] == SPELL_AURA_ADD_TARGET_TRIGGER)
         {
-            // Tous les sorts qui proc sur la victime
-            // Puis les autres
+            // All spells that proc on the victim
+            // Then the others
             if (isVictim)
                 return SPELL_PROC_TRIGGER_FAILED;
 
             switch (spellProto->Id)
             {
-                // Wolfshead Helm (Part 1 only, from the pig system that does not count the effects :s)
-                case 17768:
                 // Frosty Zap
                 case 24392:
                     if (SpellCanTrigger(spellProto, procSpell))
@@ -437,7 +435,7 @@ SpellProcEventTriggerCheck Unit::IsTriggeredAtSpellProcEvent(Unit* pVictim, Spel
         return SPELL_PROC_TRIGGER_FAILED;
 
     // Check if current equipment allows aura to proc
-    if (!isVictim && IsPlayer())
+    if (!isVictim && IsPlayer() && !spellProto->HasAttribute(SPELL_ATTR_EX3_NO_PROC_EQUIP_REQUIREMENT))
     {
         if (spellProto->EquippedItemClass == ITEM_CLASS_WEAPON)
         {
@@ -467,6 +465,14 @@ SpellProcEventTriggerCheck Unit::IsTriggeredAtSpellProcEvent(Unit* pVictim, Spel
     if (isSpellTriggeredByAuraOrItem && procSpell &&
         !procSpell->HasAttribute(SPELL_ATTR_EX3_NOT_A_PROC) &&
         !spellProto->HasAttribute(SPELL_ATTR_EX3_CAN_PROC_FROM_PROCS))
+        return SPELL_PROC_TRIGGER_FAILED;
+
+    if (spellProto->HasAttribute(SPELL_ATTR_EX3_ONLY_PROC_OUTDOORS) &&
+       !GetTerrain()->IsOutdoors(GetPositionX(), GetPositionY(), GetPositionZ()))
+        return SPELL_PROC_TRIGGER_FAILED;
+
+    if (spellProto->HasAttribute(SPELL_ATTR_EX3_ONLY_PROC_ON_CASTER) &&
+        holder->GetTarget()->GetObjectGuid() != holder->GetCasterGuid())
         return SPELL_PROC_TRIGGER_FAILED;
 
     // Get chance from spell
@@ -1040,6 +1046,9 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit* pVictim, uint32 damage, Aura
                 // Blade Flurry
                 case 13877:
                 {
+                    if (!pVictim)
+                        return SPELL_AURA_PROC_FAILED;
+
                     // prevent chain of triggered spell from same triggered spell
                     if (procSpell && procSpell->Id == 22482)
                         return SPELL_AURA_PROC_FAILED;

@@ -27,10 +27,12 @@
 #include "Map.h"
 #include "ByteBuffer.h"
 #include "ObjectGuid.h"
+#include "WorldStates.h"
 
 // magic event-numbers
 #define BG_EVENT_NONE 255
 // those generic events should get a high event id
+#define BG_EVENT_GHOST_GATE 253
 #define BG_EVENT_DOOR 254
 
 
@@ -56,6 +58,50 @@ enum BattleGroundSounds
     SOUND_HORDE_WINS                = 8454,
     SOUND_ALLIANCE_WINS             = 8455,
     SOUND_BG_START                  = 3439
+};
+
+enum BattleGroundTexts
+{
+    BCT_BG_AV_A_WINS                   = 7335,
+    BCT_BG_AV_H_WINS                   = 7336,
+
+    BCT_BG_AV_START_ONE_MINUTE         = 10638,
+    BCT_BG_AV_START_HALF_MINUTE        = 10639,
+    BCT_BG_AV_HAS_BEGUN                = 10640,
+
+    BCT_BG_WS_A_WINS                   = 9843,
+    BCT_BG_WS_H_WINS                   = 9842,
+
+    BCT_BG_WS_START_ONE_MINUTE         = 10015,
+    BCT_BG_WS_START_HALF_MINUTE        = 10016,
+    BCT_BG_WS_HAS_BEGUN                = 10014,
+
+    BCT_BG_WS_CAPTURED_HF              = 9801,
+    BCT_BG_WS_CAPTURED_AF              = 9802,
+    BCT_BG_WS_DROPPED_HF               = 9806,
+    BCT_BG_WS_DROPPED_AF               = 9805,
+    BCT_BG_WS_RETURNED_AF              = 9808,
+    BCT_BG_WS_RETURNED_HF              = 9809,
+    BCT_BG_WS_PICKEDUP_HF              = 9807,
+    BCT_BG_WS_PICKEDUP_AF              = 9804,
+    BCT_BG_WS_F_PLACED                 = 9803,
+    BCT_BG_WS_ALLIANCE_FLAG_RESPAWNED  = 10022,
+    BCT_BG_WS_HORDE_FLAG_RESPAWNED     = 10023,
+
+    BCT_BG_AB_A_WINS                   = 10633,
+    BCT_BG_AB_H_WINS                   = 10634,
+
+    BCT_BG_AB_START_ONE_MINUTE         = 10477,
+    BCT_BG_AB_START_HALF_MINUTE        = 10478,
+    BCT_BG_AB_HAS_BEGUN                = 10479,
+    BCT_BG_AB_A_NEAR_VICTORY           = 10598,
+    BCT_BG_AB_H_NEAR_VICTORY           = 10599,
+};
+
+enum BattleGroundCreatures
+{
+    NPC_AV_HERALD = 14848,
+    NPC_WSG_HERALD = 14645
 };
 
 enum BattleGroundQuests
@@ -350,6 +396,7 @@ class BattleGround
         BattleGroundScoreMap::const_iterator GetPlayerScoresBegin() const { return m_playerScores.begin(); }
         BattleGroundScoreMap::const_iterator GetPlayerScoresEnd() const { return m_playerScores.end(); }
         uint32 GetPlayerScoresSize() const { return m_playerScores.size(); }
+        WorldPacket const* GetFinalScorePacket() const { return &m_finalScore; }
 
         void StartBattleGround();
         void StopBattleGround();
@@ -399,6 +446,8 @@ class BattleGround
         static void UpdateWorldStateForPlayer(uint32 field, uint32 value, Player* source);
         virtual void EndBattleGround(Team winner);
         static void BlockMovement(Player* player);
+        int32 GetWinnerText(Team winner) const;
+        int32 GetHeraldEntry() const;
 
         void SendMessageToAll(int32 entry, ChatMsg type, Player const* source = nullptr);
         void SendYellToAll(int32 entry, uint32 language, ObjectGuid guid);
@@ -546,6 +595,7 @@ class BattleGround
         BattleGroundTypeId m_typeId;
         BattleGroundStatus m_status;
         BattleGroundWinner  m_winner;
+        WorldPacket m_finalScore;
 
         uint32 m_clientInstanceId;                          //the instance-id which is sent to the client and without any other internal use
         uint32 m_startTime;
@@ -599,22 +649,19 @@ class BattleGround
 // helper functions for world state list fill
 inline void FillInitialWorldState(ByteBuffer& data, uint32& count, uint32 state, uint32 value)
 {
-    data << uint32(state);
-    data << uint32(value);
+    WriteInitialWorldStatePair(data, state, value);
     ++count;
 }
 
 inline void FillInitialWorldState(ByteBuffer& data, uint32& count, uint32 state, int32 value)
 {
-    data << uint32(state);
-    data << int32(value);
+    WriteInitialWorldStatePair(data, state, value);
     ++count;
 }
 
 inline void FillInitialWorldState(ByteBuffer& data, uint32& count, uint32 state, bool value)
 {
-    data << uint32(state);
-    data << uint32(value?1:0);
+    WriteInitialWorldStatePair(data, state, value ? 1 : 0);
     ++count;
 }
 
@@ -628,8 +675,7 @@ inline void FillInitialWorldState(ByteBuffer& data, uint32& count, WorldStatePai
 {
     for(WorldStatePair const* itr = array; itr->state; ++itr)
     {
-        data << uint32(itr->state);
-        data << uint32(itr->value);
+        WriteInitialWorldStatePair(data, itr->state, itr->value);
         ++count;
     }
 }

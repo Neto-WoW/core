@@ -2135,7 +2135,7 @@ bool Map::ScriptCommand_AddAura(ScriptInfo const& script, WorldObject* source, W
         return ShouldAbortScript(script);
     }
 
-    pSource->AddAura(script.addAura.spellId, script.addAura.flags);
+    pSource->AddAura(script.addAura.spellId, script.addAura.flags, ToUnit(target));
 
     return false;
 }
@@ -2293,14 +2293,14 @@ bool Map::ScriptCommand_DespawnGameObject(ScriptInfo const& script, WorldObject*
     return false;
 }
 
-// SCRIPT_COMMAND_LOAD_GAMEOBJECT (82)
+// SCRIPT_COMMAND_LOAD_GAMEOBJECT_SPAWN (82)
 bool Map::ScriptCommand_LoadGameObject(ScriptInfo const& script, WorldObject* source, WorldObject* target)
 {
     GameObjectData const* pGameObjectData = sObjectMgr.GetGOData(script.loadGo.goGuid);
 
     if (GetId() != pGameObjectData->position.mapId)
     {
-        sLog.Out(LOG_BASIC, LOG_LVL_ERROR, "SCRIPT_COMMAND_LOAD_GAMEOBJECT (script id %u) tried to spawn guid %u on wrong map %u.", script.id, script.loadGo.goGuid, GetId());
+        sLog.Out(LOG_BASIC, LOG_LVL_ERROR, "SCRIPT_COMMAND_LOAD_GAMEOBJECT_SPAWN (script id %u) tried to spawn guid %u on wrong map %u.", script.id, script.loadGo.goGuid, GetId());
         return ShouldAbortScript(script);
     }
 
@@ -2479,6 +2479,37 @@ bool Map::ScriptCommand_StartScriptOnGroup(ScriptInfo const& script, WorldObject
                         ScriptsStart(sGenericScripts, scriptId, pMember->GetObjectGuid(), target ? target->GetObjectGuid() : ObjectGuid());
                 }
             }
+        }
+    }
+
+    return false;
+}
+
+// SCRIPT_COMMAND_LOAD_CREATURE_SPAWN (91)
+bool Map::ScriptCommand_LoadCreatureSpawn(ScriptInfo const& script, WorldObject* source, WorldObject* target)
+{
+    if (script.loadCreature.withGroup)
+    {
+        if (!LoadCreatureSpawnWithGroup(script.loadCreature.dbGuid))
+            return ShouldAbortScript(script);
+    }
+    else
+    {
+        if (!LoadCreatureSpawn(script.loadCreature.dbGuid))
+            return ShouldAbortScript(script);
+    }
+       
+    return false;
+}
+
+// SCRIPT_COMMAND_START_SCRIPT_ON_ZONE (92)
+bool Map::ScriptCommand_StartScriptOnZone(ScriptInfo const& script, WorldObject* source, WorldObject* target)
+{
+    for (auto const& itr : m_mapRefManager)
+    {
+        if (itr.getSource()->GetCachedZoneId() == script.startScriptOnZone.zoneId)
+        {
+            ScriptsStart(sGenericScripts, script.startScriptOnZone.scriptId, itr.getSource()->GetObjectGuid(), target ? target->GetObjectGuid() : ObjectGuid());
         }
     }
 

@@ -266,10 +266,37 @@ struct CreatureInfo
     }
 };
 
-struct EquipmentInfo
+struct EquipmentEntry
 {
-    uint32  entry;
-    uint32  equipentry[3];
+    uint32 probability = 0;
+    uint32 item[3] = { 0, 0, 0 };
+};
+
+struct EquipmentTemplate
+{
+    uint32 totalProbability = 0;
+    std::vector<EquipmentEntry> equipment;
+
+    EquipmentEntry const* ChooseEquipmentEntry() const
+    {
+        if (!totalProbability)
+            return nullptr;
+
+        uint32 const roll = urand(0, totalProbability - 1);
+        uint32 sum = 0;
+
+        for (auto const& itr : equipment)
+        {
+            if (!itr.probability)
+                continue;
+
+            sum += itr.probability;
+            if (roll < sum)
+                return &itr;
+        }
+
+        return nullptr;
+    }
 };
 
 #define MAX_CREATURE_IDS_PER_SPAWN 5
@@ -307,6 +334,10 @@ struct CreatureData
             creatureId = 1;
 
         return creatureId;
+    }
+    bool HasCreatureId(uint32 id) const
+    {
+        return std::find(creature_id.begin(), creature_id.end(), id) != creature_id.end();
     }
     uint32 GetCreatureIdCount() const
     {
@@ -517,7 +548,7 @@ enum VendorItemFlags
     VENDOR_ITEM_FLAG_DYNAMIC_RESTOCK  = 0x02,
 };
 
-typedef std::list<VendorItemCount> VendorItemCounts;
+typedef std::vector<VendorItemCount> VendorItemCounts;
 
 struct TrainerSpell
 {
@@ -550,7 +581,7 @@ struct TrainerSpellData
 // max different by z coordinate for creature aggro reaction
 #define CREATURE_Z_ATTACK_RANGE 3
 
-#define MAX_VENDOR_ITEMS 255                                // Limitation in item count field size in SMSG_LIST_INVENTORY
+#define MAX_VENDOR_ITEMS 128                                // Limitation in item count field size in SMSG_LIST_INVENTORY
 
 enum VirtualItemSlot
 {
@@ -587,5 +618,7 @@ enum TemporaryFactionFlags                                  // Used at real fact
     TEMPFACTION_RESTORE_REACH_HOME      = 0x04,             // ... at reaching home in home movement (evade), if not already done at CombatStop()
     TEMPFACTION_ALL,
 };
+
+#define MAX_LEVEL_DIFF_FOR_AGGRO_RANGE 25
 
 #endif

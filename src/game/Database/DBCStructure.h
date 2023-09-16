@@ -166,8 +166,8 @@ struct ChrRacesEntry
                                                             // 7        unused
     uint32      TeamID;                                     // 8        m_BaseLanguage (7-Alliance 1-Horde)
     uint32      creatureType;                               // 9        m_creatureType (blizzlike always 7-humanoid)
-                                                            // 10       unused, all 836
-                                                            // 11       unused, all 1604
+    uint32      loginSpellId;                               // 10       all 836
+    uint32      dazeSpellId;                                // 11       all 1604
     uint32      resSicknessSpellId;                         // 12       m_ResSicknessSpellId (blizzlike always 15007)
                                                             // 13       m_SplashSoundID
     uint32      startingTaxiMask;                           // 14
@@ -368,6 +368,9 @@ struct FactionTemplateEntry
     uint32      enemyFaction[4];                            // 6-9
     uint32      friendFaction[4];                           // 10-13
     //-------------------------------------------------------  end structure
+
+    // assigned by core
+    bool isEnemyOfAnother = false;
 
     // helpers
     bool IsFriendlyTo(FactionTemplateEntry const& entry) const
@@ -609,7 +612,7 @@ struct SpellShapeshiftFormEntry
 {
     uint32 ID;                                              // 0        m_ID
     //uint32 buttonPosition;                                // 1        m_bonusActionBar
-    //char*  Name[8];                                       // 2-9      m_name_lang
+    char*  Name[8];                                         // 2-9      m_name_lang
     //uint32 NameFlags;                                     // 10 string flags
     uint32 flags1;                                          // 11       m_flags
     int32  creatureType;                                    // 12       m_creatureType <=0 humanoid, other normal creature types

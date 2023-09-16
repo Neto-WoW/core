@@ -75,6 +75,8 @@ const char* GetMovementCheatName(CheatType flagId)
             return "ExploreHighLevelArea";
         case CHEAT_TYPE_FORBIDDEN_AREA:
             return "ForbiddenArea";
+        case CHEAT_TYPE_BOTTING:
+            return "Botting";
     }
 
     return "UnknownCheat";
@@ -254,6 +256,32 @@ uint32 MovementAnticheat::ComputeCheatAction(std::stringstream& reason)
     AddPenaltyForCheat(true, CHEAT_TYPE_EXPLORE, CONFIG_BOOL_AC_MOVEMENT_CHEAT_EXPLORE_ENABLED, CONFIG_UINT32_AC_MOVEMENT_CHEAT_EXPLORE_THRESHOLD, CONFIG_UINT32_AC_MOVEMENT_CHEAT_EXPLORE_PENALTY);
     AddPenaltyForCheat(true, CHEAT_TYPE_EXPLORE_HIGH_LEVEL, CONFIG_BOOL_AC_MOVEMENT_CHEAT_EXPLORE_HIGH_LEVEL_ENABLED, CONFIG_UINT32_AC_MOVEMENT_CHEAT_EXPLORE_HIGH_LEVEL_THRESHOLD, CONFIG_UINT32_AC_MOVEMENT_CHEAT_EXPLORE_HIGH_LEVEL_PENALTY);
     AddPenaltyForCheat(false, CHEAT_TYPE_FORBIDDEN_AREA, CONFIG_BOOL_AC_MOVEMENT_CHEAT_FORBIDDEN_AREA_ENABLED, CONFIG_UINT32_AC_MOVEMENT_CHEAT_FORBIDDEN_AREA_THRESHOLD, CONFIG_UINT32_AC_MOVEMENT_CHEAT_FORBIDDEN_AREA_PENALTY);
+
+    if (m_bottingCheckStartTime && WorldTimer::getMSTimeDiffToNow(m_bottingCheckStartTime) > sWorld.getConfig(CONFIG_UINT32_AC_MOVEMENT_CHEAT_BOTTING_PERIOD))
+    {
+        if (HasEnoughBottingData())
+        {
+            eConfigUInt32Values minTurnsConfig;
+            switch (m_turnType)
+            {
+                case TURN_MOUSE:
+                    minTurnsConfig = CONFIG_UINT32_AC_MOVEMENT_CHEAT_BOTTING_MIN_TURNS_MOUSE;
+                    break;
+                case TURN_KEYBOARD:
+                    minTurnsConfig = CONFIG_UINT32_AC_MOVEMENT_CHEAT_BOTTING_MIN_TURNS_KEYBOARD;
+                    break;
+                case TURN_ABNORMAL:
+                    minTurnsConfig = CONFIG_UINT32_AC_MOVEMENT_CHEAT_BOTTING_MIN_TURNS_ABNORMAL;
+                    break;
+                default:
+                    minTurnsConfig = CONFIG_UINT32_VALUE_COUNT;
+                    break;
+            }
+            if (minTurnsConfig != CONFIG_UINT32_VALUE_COUNT)
+                AddPenaltyForCheat(true, CHEAT_TYPE_BOTTING, CONFIG_BOOL_AC_MOVEMENT_CHEAT_BOTTING_ENABLED, minTurnsConfig, CONFIG_UINT32_AC_MOVEMENT_CHEAT_BOTTING_PENALTY);
+        }
+        ResetBottingStats();
+    }
 
     return action;
 }
@@ -491,90 +519,6 @@ UnitMoveType MovementAnticheat::GetMoveTypeForMovementInfo(MovementInfo const& m
     return type;
 }
 
-
-bool IsAnyMoveAckOpcode(uint16 opcode)
-{
-    switch (opcode)
-    {
-        case MSG_MOVE_TELEPORT_ACK:
-        case MSG_MOVE_WORLDPORT_ACK:
-        case MSG_MOVE_SET_RAW_POSITION_ACK:
-        case CMSG_FORCE_RUN_SPEED_CHANGE_ACK:
-        case CMSG_FORCE_RUN_BACK_SPEED_CHANGE_ACK:
-        case CMSG_FORCE_SWIM_SPEED_CHANGE_ACK:
-        case CMSG_FORCE_MOVE_ROOT_ACK:
-        case CMSG_FORCE_MOVE_UNROOT_ACK:
-        case CMSG_MOVE_KNOCK_BACK_ACK:
-        case CMSG_MOVE_HOVER_ACK:
-        case CMSG_MOVE_FEATHER_FALL_ACK:
-        case CMSG_MOVE_WATER_WALK_ACK:
-        case CMSG_FORCE_WALK_SPEED_CHANGE_ACK:
-        case CMSG_FORCE_SWIM_BACK_SPEED_CHANGE_ACK:
-        case CMSG_FORCE_TURN_RATE_CHANGE_ACK:
-            return true;
-    }
-
-    return false;
-}
-
-bool IsFlagAckOpcode(uint16 opcode)
-{
-    switch (opcode)
-    {
-        case CMSG_FORCE_MOVE_ROOT_ACK:
-        case CMSG_FORCE_MOVE_UNROOT_ACK:
-        case CMSG_MOVE_WATER_WALK_ACK:
-        case CMSG_MOVE_HOVER_ACK:
-        case CMSG_MOVE_FEATHER_FALL_ACK:
-            return true;
-    }
-
-    return false;
-}
-
-bool IsSpeedAckOpcode(uint16 opcode)
-{
-    switch (opcode)
-    {
-        case CMSG_FORCE_RUN_SPEED_CHANGE_ACK:
-        case CMSG_FORCE_RUN_BACK_SPEED_CHANGE_ACK:
-        case CMSG_FORCE_SWIM_SPEED_CHANGE_ACK:
-        case CMSG_FORCE_WALK_SPEED_CHANGE_ACK:
-        case CMSG_FORCE_SWIM_BACK_SPEED_CHANGE_ACK:
-        case CMSG_FORCE_TURN_RATE_CHANGE_ACK:
-            return true;
-    }
-
-    return false;
-}
-
-bool IsStopOpcode(uint16 opcode)
-{
-    switch (opcode)
-    {
-        case MSG_MOVE_STOP:
-        case MSG_MOVE_STOP_STRAFE:
-        case MSG_MOVE_STOP_TURN:
-        case MSG_MOVE_STOP_PITCH:
-        case MSG_MOVE_STOP_SWIM:
-            return true;
-    }
-
-    return false;
-}
-
-bool IsFallEndOpcode(uint16 opcode)
-{
-    switch (opcode)
-    {
-        case MSG_MOVE_FALL_LAND:
-        case MSG_MOVE_START_SWIM:
-            return true;
-    }
-
-    return false;
-}
-
 bool ShouldRejectMovement(uint32 cheatFlags)
 {
     if ((cheatFlags & (1 << CHEAT_TYPE_OVERSPEED_JUMP)) &&
@@ -721,6 +665,8 @@ uint32 MovementAnticheat::HandlePositionTests(Player* pPlayer, MovementInfo& mov
         movementInfo.HasMovementFlag(MOVEFLAG_ROOT))
         m_knockBack = false;
 
+    CheckBotting(opcode, movementInfo);
+
     AddCheats(cheatFlags);
 
     if (ShouldRejectMovement(cheatFlags))
@@ -792,7 +738,7 @@ uint32 MovementAnticheat::HandleFlagTests(Player* pPlayer, MovementInfo& movemen
     if ((currentMoveFlags & MOVEFLAG_ROOT) &&
         !(GetLastMovementInfo().moveFlags & MOVEFLAG_ROOT) &&
         !me->HasPendingMovementChange(ROOT) &&
-        !me->HasUnitState(UNIT_STAT_ROOT | UNIT_STAT_PENDING_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_PENDING_STUNNED) &&
+        !me->HasUnitState(UNIT_STAT_ROOT | UNIT_STAT_PENDING_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_PENDING_STUNNED | UNIT_STAT_ROOT_ON_LANDING) &&
         (opcode != CMSG_FORCE_MOVE_ROOT_ACK))
     {
         APPEND_CHEAT(CHEAT_TYPE_SELF_ROOT);
@@ -1213,45 +1159,203 @@ bool MovementAnticheat::CheckTeleportToTransport(MovementInfo const& movementInf
     return false;
 }
 
-bool MovementAnticheat::CheckTeleport(MovementInfo const& movementInfo) const
+bool MovementAnticheat::HasEnoughBottingData()
 {
-    if (!sWorld.getConfig(CONFIG_BOOL_AC_MOVEMENT_CHEAT_TELEPORT_ENABLED))
+    uint32 const totalTime = WorldTimer::getMSTimeDiffToNow(m_bottingCheckStartTime);
+
+    // player is mostly afk, start over in this case
+    if (totalTime > ((m_movementPacketsCount - m_cheatOccuranceTotal[CHEAT_TYPE_BOTTING]) * 5000))
         return false;
 
-    if (!me->m_transport && !me->HasMovementFlag(MOVEFLAG_ONTRANSPORT) && !me->IsTaxiFlying())
+    if (m_movementPacketsCount < sWorld.getConfig(CONFIG_UINT32_AC_MOVEMENT_CHEAT_BOTTING_MIN_PACKETS))
+        return false;
+
+    // if more than 25% of packets are turns with mouse, then likely not a bot, as bots dont move camera this much
+    if (m_turnType == TURN_MOUSE && (m_cheatOccuranceTotal[CHEAT_TYPE_BOTTING] > (m_movementPacketsCount / 4)))
+        return false;
+    if (m_turnType == TURN_KEYBOARD && (m_cheatOccuranceTotal[CHEAT_TYPE_BOTTING] > (m_movementPacketsCount / 2)))
+        return false;
+
+    return true;
+}
+
+void MovementAnticheat::ResetBottingStats()
+{
+    m_bottingCheckStartTime = WorldTimer::getMSTime();
+    m_movementPacketsCount = 0;
+    m_turnType = TURN_NONE;
+    m_cheatOccuranceTotal[CHEAT_TYPE_BOTTING] = 0;
+}
+
+void MovementAnticheat::CheckBotting(uint16 opcode, MovementInfo const& movementInfo)
+{
+    if (!sWorld.getConfig(CONFIG_BOOL_AC_MOVEMENT_CHEAT_BOTTING_ENABLED))
+        return;
+
+    // we dont care about involuntary opcodes
+    if (IsAnyMoveAckOpcode(opcode))
+        return;
+
+    // if we were being moved by server previously, skip this packet
+    if (!GetLastMovementInfo().ctime)
+        return;
+
+    bool turning;
+    switch (opcode)
     {
-        if (!IsTeleportAllowed(movementInfo))
-            return true;
+        case MSG_MOVE_START_STRAFE_LEFT:
+        case MSG_MOVE_START_STRAFE_RIGHT:
+        {
+            // bots dont strafe
+            ResetBottingStats();
+            return;
+        }
+        case MSG_MOVE_JUMP:
+        {
+            // bots dont jump backwards or use it to interrupt casting
+            if (movementInfo.HasMovementFlag(MOVEFLAG_BACKWARD) || me->IsNonMeleeSpellCasted())
+            {
+                ResetBottingStats();
+                return;
+            }
+            turning = false;
+            break;
+        }
+        case MSG_MOVE_SET_FACING:
+        {
+            if (m_turnType != TURN_MOUSE && m_cheatOccuranceTotal[CHEAT_TYPE_BOTTING])
+            {
+                ResetBottingStats();
+                m_turnType = TURN_MOUSE;
+            }
+            turning = true;
+            break;
+        }
+        case MSG_MOVE_START_TURN_LEFT:
+        case MSG_MOVE_START_TURN_RIGHT:
+        {
+            if (m_turnType != TURN_KEYBOARD && m_cheatOccuranceTotal[CHEAT_TYPE_BOTTING])
+            {
+                ResetBottingStats();
+                m_turnType = TURN_KEYBOARD;
+            }
+            turning = true;
+            break;
+        }
+        case MSG_MOVE_START_FORWARD:
+        case MSG_MOVE_START_BACKWARD:
+        {
+            if (std::abs(GetLastMovementInfo().pos.o - movementInfo.pos.o) < 0.1f)
+            {
+                turning = false;
+                break;
+            }
+
+            // if consistently turning this way then its certainly a cheater
+            if (m_turnType != TURN_ABNORMAL && m_cheatOccuranceTotal[CHEAT_TYPE_BOTTING])
+            {
+                ResetBottingStats();
+                m_turnType = TURN_ABNORMAL;
+            }
+            turning = true;
+            break;
+        }
+        default:
+        {
+            turning = false;
+            break;
+        }
     }
+
+    if (turning)
+    {
+        if (Unit* pVictim = me->GetVictim())
+        {
+            // bots do not turn in combat while already facing victim
+            if (pVictim->IsInCombat() && !pVictim->IsMoving() && me->HasInArc(pVictim, M_PI_F / 2.0f))
+            {
+                ResetBottingStats();
+                return;
+            }
+        }
+
+        // we store turns count here
+        m_cheatOccuranceTotal[CHEAT_TYPE_BOTTING]++;
+    }
+    
+    m_movementPacketsCount++;
+}
+
+bool MovementAnticheat::CheckTeleport(MovementInfo const& movementInfo) const
+{
+    if (!sWorld.getConfig(CONFIG_BOOL_AC_MOVEMENT_CHEAT_TELEPORT_ENABLED) ||
+        me->IsLaunched() || me->IsTaxiFlying() || me->IsBeingTeleported())
+        return false;
+
+    if (!IsTeleportAllowed3D(movementInfo))
+        return true;
+
+    // check moving in given axis without appropriate move flags
+    if (GetLastMovementInfo().ctime &&
+        !GetLastMovementInfo().HasMovementFlag(MOVEFLAG_MASK_XZ) &&
+        !movementInfo.HasMovementFlag(MOVEFLAG_MASK_XZ) &&
+        GetLastMovementInfo().HasMovementFlag(MOVEFLAG_ONTRANSPORT) == movementInfo.HasMovementFlag(MOVEFLAG_ONTRANSPORT))
+    {
+        float const distance2d = movementInfo.HasMovementFlag(MOVEFLAG_ONTRANSPORT) ?
+            GetDistance2D(GetLastMovementInfo().t_pos, movementInfo.t_pos) :
+            GetDistance2D(GetLastMovementInfo().pos, movementInfo.pos);
+        
+        if (distance2d > 1.0f)
+            return true;
+
+        // swimming flag only included in check because of 1.14
+        // vanilla clients do not have a descend/ascend flag
+        if (!GetLastMovementInfo().HasMovementFlag(MOVEFLAG_JUMPING | MOVEFLAG_FALLINGFAR | MOVEFLAG_SWIMMING) &&
+            !movementInfo.HasMovementFlag(MOVEFLAG_JUMPING | MOVEFLAG_FALLINGFAR | MOVEFLAG_SWIMMING))
+        {
+            float const distanceZ = movementInfo.HasMovementFlag(MOVEFLAG_ONTRANSPORT) ?
+                std::abs(GetLastMovementInfo().t_pos.z - movementInfo.t_pos.z) :
+                std::abs(GetLastMovementInfo().pos.z - movementInfo.pos.z);
+            
+            if (distanceZ > 2.0f)
+                return true;
+        }
+    }
+
+    return false;
+}
+
+bool MovementAnticheat::IsInTransportArea() const
+{
+    // Undercity Lift
+    if ((me->GetCachedZoneId() == 1497 && me->GetCachedAreaId() == 1497) ||
+    // Deeprun Tram
+        (me->GetCachedZoneId() == 2257) ||
+    // Thousand Needles Lift
+        (me->GetCachedZoneId() == 400 && me->GetCachedAreaId() == 485))
+    return true;
 
     return false;
 }
 
 #define ALLOWED_TRANSPORT_DISTANCE 100.0f
 
-bool MovementAnticheat::IsTeleportAllowed(MovementInfo const& movementInfo) const
+bool MovementAnticheat::IsTeleportAllowed3D(MovementInfo const& movementInfo) const
 {
-    if ((me->GetPositionX() == 0.0f || me->GetPositionY() == 0.0f || me->GetPositionZ() == 0.0f) ||
-       (movementInfo.GetPos().x == 0.0f || movementInfo.GetPos().y == 0.0f || movementInfo.GetPos().z == 0.0f) ||
-       (me->IsLaunched()) || 
-       (me->IsBeingTeleported()))
+    if (me->m_transport || me->HasMovementFlag(MOVEFLAG_ONTRANSPORT))
         return true;
 
     float const distance = GetDistance3D(me->GetPosition(), movementInfo.pos);
-    float maxDistance = sWorld.getConfig(CONFIG_FLOAT_AC_MOVEMENT_CHEAT_TELEPORT_DISTANCE) * std::max(1.0f, me->GetSpeedRate(GetMoveTypeForMovementInfo(movementInfo)) * 0.2f);
+    float const maxDistance = sWorld.getConfig(CONFIG_FLOAT_AC_MOVEMENT_CHEAT_TELEPORT_DISTANCE) * std::max(1.0f, me->GetSpeedRate(GetMoveTypeForMovementInfo(movementInfo)) * 0.2f);
 
-    // Exclude elevators
-    uint32 destZoneId = 0;
-    uint32 destAreaId = 0;
-    me->GetTerrain()->GetZoneAndAreaId(destZoneId, destAreaId, movementInfo.pos.x, movementInfo.pos.y, movementInfo.pos.z);
-    if (destZoneId == me->GetZoneId() && destAreaId == me->GetAreaId())
+    if (distance > maxDistance)
     {
-        // Undercity Lift
-        if ((me->GetZoneId() == 1497 && me->GetAreaId() == 1497) ||
-        // Thousand Needles Lift
-           (me->GetZoneId() == 2257 || (me->GetZoneId() == 400 && me->GetAreaId() == 485)))
-            maxDistance = std::max(maxDistance, ALLOWED_TRANSPORT_DISTANCE);
+        // Exclude elevators
+        if (IsInTransportArea())
+            return distance < ALLOWED_TRANSPORT_DISTANCE;
+
+        return false;
     }
 
-    return distance < maxDistance;
+    return true;
 }

@@ -87,7 +87,7 @@ Pet::~Pet()
 
 void Pet::AddToWorld()
 {
-    ///- Register the pet for guid lookup
+    // Register the pet for guid lookup
     if (!IsInWorld())
         GetMap()->InsertObject<Pet>(GetObjectGuid(), this);
 
@@ -107,11 +107,11 @@ void Pet::AddToWorld()
 
 void Pet::RemoveFromWorld()
 {
-    ///- Remove the pet from the accessor
+    // Remove the pet from the accessor
     if (IsInWorld())
         GetMap()->EraseObject<Pet>(GetObjectGuid());
 
-    ///- Don't call the function for Creature, normal mobs + totems go in a different storage
+    // Don't call the function for Creature, normal mobs + totems go in a different storage
     Unit::RemoveFromWorld();
 }
 
@@ -370,7 +370,10 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petNumber, bool c
     {
         SetByteValue(UNIT_FIELD_BYTES_1, UNIT_BYTES_1_OFFSET_PET_LOYALTY, m_pTmpCache->loyalty);
 
-        SetUInt32Value(UNIT_FIELD_FLAGS, m_pTmpCache->renamed ? UNIT_FLAG_PET_ABANDON : UNIT_FLAG_PET_RENAME | UNIT_FLAG_PET_ABANDON);
+        if (m_pTmpCache->renamed)
+            RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PET_RENAME);
+        else
+            SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PET_RENAME);
 
         SetTP(m_pTmpCache->trainingPoints);
 
@@ -378,17 +381,6 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petNumber, bool c
         SetPower(POWER_HAPPINESS, m_pTmpCache->currentHappiness);
         SetPowerType(POWER_FOCUS);
     }
-
-    if (getPetType() != MINI_PET)
-    {
-        if (owner->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED))
-            SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
-        else
-            RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
-    }
-
-    if (owner->IsPvP())
-        SetPvP(true);
 
     AIM_Initialize();
     map->Add((Creature*)this);
@@ -480,8 +472,8 @@ void Pet::SavePetToDB(PetSaveMode mode)
         if (!bInCache)
             m_pTmpCache = new CharacterPetCache;
 
-        uint32 curhealth = GetHealth();
-        uint32 curmana = GetPower(POWER_MANA);
+        uint32 const curhealth = GetHealth();
+        uint32 const curmana = GetPower(POWER_MANA);
 
         // stable and not in slot saves
         if ((mode != PET_SAVE_AS_CURRENT && getPetType() != HUNTER_PET) ||
@@ -493,10 +485,6 @@ void Pet::SavePetToDB(PetSaveMode mode)
         _SaveSpells();
         _SaveSpellCooldowns();
         _SaveAuras();
-
-        uint32 loyalty = 1;
-        if (getPetType() != HUNTER_PET)
-            loyalty = GetLoyaltyLevel();
 
         // remove current data
         static SqlStatementID delPet ;
@@ -1533,6 +1521,8 @@ bool Pet::InitStatsForLevel(uint32 petlevel, Unit* owner)
             SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
         else
             RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
+
+        SetPvP(owner->IsPvP());
     }
 
     UpdateAllStats();
@@ -2287,8 +2277,13 @@ bool Pet::Create(uint32 guidlow, CreatureCreatePos& cPos, CreatureInfo const* ci
     SetSheath(SHEATH_STATE_MELEE);
     SetByteValue(UNIT_FIELD_BYTES_2, UNIT_BYTES_2_OFFSET_MISC_FLAGS, UNIT_BYTE2_FLAG_UNK3 | UNIT_BYTE2_FLAG_AURAS | UNIT_BYTE2_FLAG_UNK5);
 
-    if (getPetType() == MINI_PET)                           // always non-attackable
-        SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PLAYER | UNIT_FLAG_IMMUNE_TO_NPC);
+    if (getPetType() == MINI_PET)
+    {
+        SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PLAYER | UNIT_FLAG_IMMUNE_TO_NPC); // always non-attackable
+
+        if (cinfo->auras)
+            LoadDefaultAuras(cinfo->auras);
+    }
 
     return true;
 }

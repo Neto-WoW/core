@@ -47,6 +47,7 @@ class Pet;
 class GmTicket;
 struct ItemPrototype;
 struct SkillLineEntry;
+struct TrainerSpellData;
 
 #define SPELL_PLAYER_MUTED_VISUAL 1852
 
@@ -449,12 +450,14 @@ class ChatHandler
         bool HandleDebugGetLootRecipientCommand(char* args);
         bool HandleDebugGetValueByIndexCommand(char* args);
         bool HandleDebugGetValueByNameCommand(char* args);
+        bool HandleDebugGetPrevPlayTimeCommand(char* args);
         bool HandleDebugModItemValueCommand(char* args);
         bool HandleDebugModValueCommand(char* args);
         bool HandleDebugSetAuraStateCommand(char* args);
         bool HandleDebugSetItemValueCommand(char* args);
         bool HandleDebugSetValueByIndexCommand(char* args);
         bool HandleDebugSetValueByNameCommand(char* args);
+        bool HandleDebugSetPrevPlayTimeCommand(char* args);
         bool HandleDebugSpellCheckCommand(char* args);
         bool HandleDebugSpellCoefsCommand(char* args);
         bool HandleDebugSpellModsCommand(char* args);
@@ -578,9 +581,11 @@ class ChatHandler
         bool HandleLearnAllMySpellsCommand(char* args);
         bool HandleLearnAllMyTalentsCommand(char* args);
         bool HandleLearnAllMyTaxisCommand(char* args);
+        bool HandleLearnAllTrainerCommand(char* args);
 
         bool HandleListAurasCommand(char* args);
         bool HandleListCreatureCommand(char* args);
+        bool HandleListClickToMoveCommand(char* args);
         bool HandleListExploredAreasCommand(char* args);
         bool HandleListItemCommand(char* args);
         bool HandleListObjectCommand(char* args);
@@ -718,7 +723,22 @@ class ChatHandler
         bool HandleUnitSpeedInfoCommand(char* args);
         bool HandleUnitStatInfoCommand(char* args);
         bool HandleUnitUpdateFieldsInfoCommand(char* args);
-        bool HandleUnitShowStateCommand(char* args);
+        bool HandleUnitFactionInfoCommand(char* args);
+        bool HandleUnitShowRaceCommand(char* args);
+        bool HandleUnitShowClassCommand(char* args);
+        bool HandleUnitShowGenderCommand(char* args);
+        bool HandleUnitShowPowerTypeCommand(char* args);
+        bool HandleUnitShowFormCommand(char* args);
+        bool HandleUnitShowVisFlagsCommand(char* args);
+        bool HandleUnitShowMiscFlagsCommand(char* args);
+        bool HandleUnitShowUnitStateCommand(char* args);
+        bool HandleUnitShowUnitFlagsCommand(char* args);
+        bool HandleUnitShowNPCFlagsCommand(char* args);
+        bool HandleUnitShowEmoteStateCommand(char* args);
+        bool HandleUnitShowStandStateCommand(char* args);
+        bool HandleUnitShowSheathStateCommand(char* args);
+        bool HandleUnitShowMoveFlagsCommand(char* args);
+        bool HandleUnitShowCreateSpellCommand(char* args);
 
         bool HandlePDumpLoadCommand(char* args);
         bool HandlePDumpWriteCommand(char* args);
@@ -1044,6 +1064,7 @@ class ChatHandler
         bool HandlePartyBotPauseHelper(char* args, bool pause);
         void HandleCharacterLevel(Player* player, ObjectGuid player_guid, uint32 oldlevel, uint32 newlevel);
         void HandleLearnSkillRecipesHelper(Player* player, uint32 skill_id);
+        void HandleLearnTrainerHelper(Player* player, TrainerSpellData const* tSpells);
         void HandleUnLearnSkillRecipesHelper(Player* player,uint32 skill_id);
         bool HandleGoHelper(Player* _player, uint32 mapid, float x, float y, float const* zPtr = nullptr, float const* ortPtr = nullptr);
         bool HandleGetValueHelper(Object* target, uint32 field, char* typeStr);
@@ -1067,11 +1088,11 @@ class ChatHandler
          */
         struct DeletedInfo
         {
-            uint32      lowguid;                            ///< the low GUID from the character
-            std::string name;                               ///< the character name
-            uint32      accountId;                          ///< the account id
-            std::string accountName;                        ///< the account name
-            time_t      deleteDate;                         ///< the date at which the character has been deleted
+            uint32      lowguid;                            // the low GUID from the character
+            std::string name;                               // the character name
+            uint32      accountId;                          // the account id
+            std::string accountName;                        // the account name
+            time_t      deleteDate;                         // the date at which the character has been deleted
         };
 
         typedef std::list<DeletedInfo> DeletedInfoList;

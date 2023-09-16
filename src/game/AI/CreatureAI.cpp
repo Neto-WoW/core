@@ -55,7 +55,7 @@ void CreatureAI::AttackedBy(Unit* attacker)
 
 void CreatureAI::AttackStart(Unit* pVictim)
 {
-    if (!pVictim || m_creature->HasReactState(REACT_PASSIVE))
+    if (m_creature->HasReactState(REACT_PASSIVE))
         return;
 
     if (m_creature->Attack(pVictim, m_bMeleeAttack))
@@ -334,28 +334,35 @@ void CreatureAI::EnterEvadeMode()
 }
 
 // Distract creature, if player gets too close while stealthed/prowling
-void CreatureAI::TriggerAlert(Unit const* who)
+void CreatureAI::OnMoveInStealth(Unit* who)
 {
-    // If there's no target, or target isn't a player do nothing
-    if (!who || who->GetTypeId() != TYPEID_PLAYER)
-        return;
+    if (CanTriggerAlert(who))
+        TriggerAlertDirect(who);
+}
 
+bool CreatureAI::CanTriggerAlert(Unit const* who)
+{
     // If this unit isn't an NPC, is already distracted, is in combat, is confused, stunned or fleeing, do nothing
     if (m_creature->GetTypeId() != TYPEID_UNIT || m_creature->IsInCombat() || m_creature->HasUnitState(UNIT_STAT_NO_FREE_MOVE))
-        return;
+        return false;
 
     // Only alert for hostiles!
     if (m_creature->IsCivilian() || m_creature->HasReactState(REACT_PASSIVE) || !m_creature->IsValidAttackTarget(who))
-        return;
+        return false;
 
     // 10 sec cooldown for stealth warning
     if (WorldTimer::getMSTimeDiffToNow(m_uLastAlertTime) < 10000)
-        return;
+        return false;
 
     // only alert if target is within line of sight
     if (!m_creature->IsWithinLOSInMap(who))
-        return;
+        return false;
 
+    return true;
+}
+
+void CreatureAI::TriggerAlertDirect(Unit const* who)
+{
     // Send alert sound (if any) for this creature
     m_creature->SendAIReaction(AI_REACTION_ALERT);
 

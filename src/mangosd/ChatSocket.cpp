@@ -54,7 +54,7 @@ protected:
     std::stringstream& m_buff;
 };
 
-/// OfflineChatSocket constructor
+// OfflineChatSocket constructor
 OfflineChatSocket::OfflineChatSocket() : OfflineChatHandler(),
     pendingCommands(0, USYNC_THREAD, "pendingCommands"),
     outActive(false),
@@ -65,13 +65,13 @@ OfflineChatSocket::OfflineChatSocket() : OfflineChatHandler(),
     reference_counting_policy ().value (ACE_Event_Handler::Reference_Counting_Policy::ENABLED);
 }
 
-/// OfflineChatSocket destructor
+// OfflineChatSocket destructor
 OfflineChatSocket::~OfflineChatSocket()
 {
     peer().close();
 }
 
-/// Accept an incoming connection
+// Accept an incoming connection
 int OfflineChatSocket::open(void* )
 {
     if (reactor ()->register_handler(this, ACE_Event_Handler::READ_MASK | ACE_Event_Handler::WRITE_MASK) == -1)
@@ -149,7 +149,7 @@ int OfflineChatSocket::handle_output (ACE_HANDLE)
     return 0;
 }
 
-/// Read data from the network
+// Read data from the network
 std::string TrimLeft(const std::string& s)
 {
     size_t startpos = s.find_first_not_of(' ');
@@ -174,7 +174,7 @@ int OfflineChatSocket::handle_input(ACE_HANDLE)
     }
     DEBUG_OUT_CHAT("OfflineChatSocket::handle_input %i bytes read", readBytes);
 
-    ///- Discard data after line break or line feed
+    // Discard data after line break or line feed
     bool endofpacket = false;
     for (; readBytes > 0 ; --readBytes)
     {
@@ -292,7 +292,7 @@ int OfflineChatSocket::handle_input(ACE_HANDLE)
         else
         {
             // Or just queue a normal chat packet
-            WorldPacket* data = new WorldPacket(CMSG_MESSAGECHAT, 100);
+            std::unique_ptr<WorldPacket> data = std::make_unique<WorldPacket>(CMSG_MESSAGECHAT, 100);
             uint32 lang = player->GetTeam() == ALLIANCE ? LANG_COMMON : LANG_ORCISH;
             *data << messageType;
             *data << lang;
@@ -322,7 +322,7 @@ int OfflineChatSocket::handle_input(ACE_HANDLE)
                     sendf("err_packet\n");
                     return 0;
             }
-            player->GetSession()->QueuePacket(data);
+            player->GetSession()->QueuePacket(std::move(data));
             DEBUG_OUT_CHAT(">> Queue packet.");
         }
     }
@@ -331,7 +331,7 @@ int OfflineChatSocket::handle_input(ACE_HANDLE)
     return 0;
 }
 
-/// Output function
+// Output function
 int OfflineChatSocket::sendf(const char* msg)
 {
     std::unique_lock<std::mutex> lock (outBufferLock);
