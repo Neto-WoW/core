@@ -1,0 +1,17 @@
+1 textapi.grpc.pb.cc, textapi.grpc.pb.h, textapi.pb.cc, textapi.pb.h was generated
+
+windows:
+"c:\Program Files (x86)\grpc\bin\protoc.exe" --cpp_out=. textapi.proto
+"c:\Program Files (x86)\grpc\bin\protoc.exe" --grpc_out=. --plugin=protoc-gen-grpc="c:\Program Files (x86)\grpc\bin\grpc_cpp_plugin.exe" textapi.proto
+
+linux:
+protoc --cpp_out=. textapi.proto
+protoc --grpc_out=. --plugin=protoc-gen-grpc=which grpc_cpp_plugin textapi.proto
+
+
+2 After debugging is completed, when it is officially used, it's needed to use 10.195.40.4:50050 intranet IP to access the service.
+
+3 TextFilter::check()  will return "pass", "deny", "timeout", "exception", 
+   The interface is encapsulated and will return strings in 4 states. only need to block when get "deny".
+
+4 In order to achieve the best usage efficiency, the api can be called with high concurrent calls:  after initializing one connection, multiple threads or instances can call it at the same time.
