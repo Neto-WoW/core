@@ -15,6 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+include(${CMAKE_CURRENT_LIST_DIR}/grpc.cmake)
+
 set (game_SRCS 
     AccountMgr.cpp
     AuraRemovalMgr.cpp
@@ -215,6 +217,9 @@ set (game_SRCS
     vmap/VMapFactory.cpp
     vmap/VMapManager2.cpp
     vmap/WorldModel.cpp
+    text_filter.cc
+    ${tf_grpc_srcs}
+    ${tf_proto_srcs}
     AccountMgr.h
     AuraRemovalMgr.h
     AutoBroadCastMgr.h
@@ -414,8 +419,11 @@ set (game_SRCS
     vmap/VMapManager2.h
     vmap/VMapTools.h
     vmap/WorldModel.h
-
+    text_filter.h
+    ${tf_grpc_hdrs}
+    ${tf_proto_hdrs}
 )
+
 
 if((${CMAKE_VERSION} VERSION_LESS "3.16") OR USE_PCH_OLD)
   list(APPEND game_SRCS
@@ -567,6 +575,9 @@ SET_TARGET_PROPERTIES (game PROPERTIES FOLDER "Game Libs")
 target_link_libraries(game
   shared
   Detour
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
 )
 
 #add_dependencies(game revision.h)

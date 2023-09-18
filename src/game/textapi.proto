@@ -1,0 +1,21 @@
+syntax = "proto3"; // 指定proto版本
+package textapi;     // 指定包名
+
+option go_package = "textapi";
+
+// 定义TextApi服务
+service TextApi {
+	// 定义req方法
+	rpc TextReq(TextApiRequest) returns (TextApiResponse) {}
+}
+
+// request 请求结构
+message TextApiRequest {
+	string md5 = 1;
+	string text = 2;
+}
+
+// response 响应结构
+message TextApiResponse {
+    string message = 1;
+}
