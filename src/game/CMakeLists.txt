@@ -218,9 +218,7 @@ set (game_SRCS
     vmap/VMapFactory.cpp
     vmap/VMapManager2.cpp
     vmap/WorldModel.cpp
-    text_filter.cc
-    ${tf_grpc_srcs}
-    ${tf_proto_srcs}
+    AccountData.h
     AccountMgr.h
     AuraRemovalMgr.h
     AutoBroadCastMgr.h
