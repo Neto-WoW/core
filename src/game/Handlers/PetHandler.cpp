@@ -231,6 +231,90 @@ void WorldSession::SendPetNameQuery(ObjectGuid petGuid, uint32 petNumber)
 
 void WorldSession::HandlePetSetAction(WorldPacket& recv_data)
 {
+	ObjectGuid petGuid;
+	uint8  count;
+
+	recv_data >> petGuid;
+
+	Creature* pet = _player->GetMap()->GetAnyTypeCreature(petGuid);
+
+	if (!pet || (pet != _player->GetPet() && pet != _player->GetCharm()))
+	{
+		sLog.Out(LOG_BASIC, LOG_LVL_ERROR, "HandlePetSetAction: Unknown pet or pet owner.");
+		// If you decide to handle this error in a specific way, place your code here.
+	}
+
+	if (pet && pet->IsPet() && !((Pet*)pet)->IsEnabled())
+	{
+		// Handle this condition if needed.
+		return;
+	}
+
+	CharmInfo* charmInfo = pet ? pet->GetCharmInfo() : nullptr;
+	if (!charmInfo)
+	{
+		sLog.Out(LOG_BASIC, LOG_LVL_ERROR, "WorldSession::HandlePetSetAction: object (GUID: %u TypeId: %u) is considered pet-like but doesn't have a charminfo!", pet ? pet->GetGUIDLow() : 0, pet ? pet->GetTypeId() : 0);
+		// If you decide to handle this error in a specific way, place your code here.
+	}
+
+	count = (recv_data.size() == 24) ? 2 : 1;
+
+	uint32 position[2];
+	uint32 data[2];
+	bool move_command = false;
+
+	for (uint8 i = 0; i < count; ++i)
+	{
+		recv_data >> position[i];
+		recv_data >> data[i];
+
+		uint8 act_state = UNIT_ACTION_BUTTON_TYPE(data[i]);
+
+		// ignore invalid position
+		if (position[i] >= MAX_UNIT_ACTION_BAR_INDEX)
+			continue;  // Changed from 'return' to 'continue' to handle next action, if any.
+
+		if (act_state == ACT_COMMAND || act_state == ACT_REACTION)
+		{
+			if (count == 2)
+				continue;  // Changed from 'return' to 'continue' to handle next action, if any.
+
+			move_command = true;
+		}
+	}
+
+	// Remaining unchanged parts of your code...
+
+	for (uint8 i = 0; i < count; ++i)
+	{
+		uint32 spellId = UNIT_ACTION_BUTTON_ACTION(data[i]);
+		uint8 act_state = UNIT_ACTION_BUTTON_TYPE(data[i]);
+
+		sLog.Out(LOG_BASIC, LOG_LVL_DETAIL, "Player %s has changed pet spell action. Position: %u, Spell: %u, State: 0x%X", _player->GetName(), position[i], spellId, uint32(act_state));
+
+		if (!((act_state == ACT_ENABLED || act_state == ACT_DISABLED || act_state == ACT_PASSIVE) && spellId && !pet->HasSpell(spellId)))
+		{
+			if (act_state == ACT_ENABLED && spellId)
+			{
+				if (pet->IsCharmed())
+					charmInfo->ToggleCreatureAutocast(spellId, true);
+				else
+					((Pet*)pet)->ToggleAutocast(spellId, true);
+			}
+			else if (act_state == ACT_DISABLED && spellId)
+			{
+				if (pet->IsCharmed())
+					charmInfo->ToggleCreatureAutocast(spellId, false);
+				else
+					((Pet*)pet)->ToggleAutocast(spellId, false);
+			}
+
+			charmInfo->SetActionBar(position[i], spellId, ActiveStates(act_state));
+		}
+	}
+}
+
+{
     ObjectGuid petGuid;
     uint8  count;
 
