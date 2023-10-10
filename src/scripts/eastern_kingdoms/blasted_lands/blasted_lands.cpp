@@ -50,6 +50,8 @@ bool GOHello_go_stone_of_binding(Player* pPlayer, GameObject* pGo)
     }
     if (pCreature)
         pCreature->CastSpell(pCreature, 12938, true);
+		if (pCreature->HealthBelowPct(5)) // If below 5% kill, otherwise won't work.
+		pCreature->CastSpell(pCreature, 5, true);
     return false;
 }
 
