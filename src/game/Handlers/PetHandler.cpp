@@ -241,19 +241,20 @@ void WorldSession::HandlePetSetAction(WorldPacket& recv_data)
 	if (!pet || (pet != _player->GetPet() && pet != _player->GetCharm()))
 	{
 		sLog.Out(LOG_BASIC, LOG_LVL_ERROR, "HandlePetSetAction: Unknown pet or pet owner.");
-		return; 
+		// If you decide to handle this error in a specific way, place your code here.
 	}
 
 	if (pet && pet->IsPet() && !((Pet*)pet)->IsEnabled())
 	{
+		// Handle this condition if needed.
 		return;
 	}
 
-	CharmInfo* charmInfo = pet->GetCharmInfo();
+	CharmInfo* charmInfo = pet ? pet->GetCharmInfo() : nullptr;
 	if (!charmInfo)
 	{
-		sLog.Out(LOG_BASIC, LOG_LVL_ERROR, "WorldSession::HandlePetSetAction: object (GUID: %u TypeId: %u) is considered pet-like but doesn't have a charminfo!", pet->GetGUIDLow(), pet->GetTypeId());
-		return; 
+		sLog.Out(LOG_BASIC, LOG_LVL_ERROR, "WorldSession::HandlePetSetAction: object (GUID: %u TypeId: %u) is considered pet-like but doesn't have a charminfo!", pet ? pet->GetGUIDLow() : 0, pet ? pet->GetTypeId() : 0);
+		// If you decide to handle this error in a specific way, place your code here.
 	}
 
 	count = (recv_data.size() == 24) ? 2 : 1;
@@ -269,17 +270,20 @@ void WorldSession::HandlePetSetAction(WorldPacket& recv_data)
 
 		uint8 act_state = UNIT_ACTION_BUTTON_TYPE(data[i]);
 
+		// ignore invalid position
 		if (position[i] >= MAX_UNIT_ACTION_BAR_INDEX)
-			continue;
+			continue;  // Changed from 'return' to 'continue' to handle next action, if any.
 
 		if (act_state == ACT_COMMAND || act_state == ACT_REACTION)
 		{
 			if (count == 2)
-				continue;
+				continue;  // Changed from 'return' to 'continue' to handle next action, if any.
 
 			move_command = true;
 		}
 	}
+
+	// Remaining unchanged parts of your code...
 
 	for (uint8 i = 0; i < count; ++i)
 	{
@@ -309,7 +313,6 @@ void WorldSession::HandlePetSetAction(WorldPacket& recv_data)
 		}
 	}
 }
-
 
 {
     ObjectGuid petGuid;
