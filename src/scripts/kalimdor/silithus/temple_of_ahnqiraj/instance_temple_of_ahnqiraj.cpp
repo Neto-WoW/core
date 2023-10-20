@@ -853,6 +853,61 @@ struct AI_QirajiMindslayer : public ScriptedAI {
     }
 
 };
+
+struct AI_obsidianEradicator : public ScriptedAI {
+
+    uint32 manaDrainTick;
+    std::list<Player*> players;
+
+    AI_obsidianEradicator(Creature* pCreature) :
+        ScriptedAI(pCreature)
+    {
+        Reset();
+    }
+
+    void Reset() override
+    {
+        manaDrainTick = 4000;
+        players.clear();
+    }
+
+    void JustDied(Unit* pWho) override
+    {
+    }
+
+    void UpdateAI(uint32 const diff) override
+    {
+        if (!m_creature->SelectHostileTarget() || !m_creature->GetVictim())
+        {
+            m_creature->SetPower(POWER_MANA, 0);
+            return;
+        }
+        if (manaDrainTick < diff) {
+
+            GetPlayersWithinRange(players, 50.0f);
+
+            for (const auto& pPlayer : players)
+            {
+                if (pPlayer)
+                    pPlayer->ModifyPower(POWER_MANA, -2500);
+            }
+
+            m_creature->ModifyPower(POWER_MANA, 5000);
+
+            if (m_creature->GetPowerPercent(POWER_MANA) == 100)
+                DoCastSpellIfCan(m_creature, 26458);
+
+            manaDrainTick = 4000;
+        }
+        else {
+            manaDrainTick -= diff;
+        }
+
+        DoMeleeAttackIfReady();
+    }
+
+};
+
 InstanceData* GetInstanceData_instance_temple_of_ahnqiraj(Map* pMap)
 {
     return new instance_temple_of_ahnqiraj(pMap);
@@ -861,6 +916,11 @@ InstanceData* GetInstanceData_instance_temple_of_ahnqiraj(Map* pMap)
 CreatureAI* GetAI_qirajiMindslayer(Creature* pCreature)
 {
     return new AI_QirajiMindslayer(pCreature);
+}
+
+CreatureAI* GetAI_obsidianEradicator(Creature* pCreature)
+{
+    return new AI_obsidianEradicator(pCreature);
 }
 
 void AddSC_instance_temple_of_ahnqiraj()
@@ -881,5 +941,11 @@ void AddSC_instance_temple_of_ahnqiraj()
     pNewScript->Name = "mob_qiraji_mindslayer";
     pNewScript->GetAI = &GetAI_qirajiMindslayer;
     pNewScript->RegisterSelf();
+
+    pNewScript = new Script;
+    pNewScript->Name = "mob_obsidian_eradicator";
+    pNewScript->GetAI = &GetAI_obsidianEradicator;
+    pNewScript->RegisterSelf();
+
 
 }
