@@ -49,8 +49,8 @@ struct MoveLocations
 
 static SpawnLocations Larva[] =
 {
-    { -9700.200195f, 1567.980835f, 23.901463f}, //old value:  {-9695.0f, 1585.0f, 25.0f},
-    { -9659.252930f, 1530.876587f, 22.336987f} //old value:  {-9627.0f, 1538.0f, 21.44f}
+    { -9700.200195f, 1567.980835f, 23.901463f},
+    { -9661.723633f, 1530.908447f, 22.203022f} 
 };
 
 static SpawnLocations Swarmers[] =
