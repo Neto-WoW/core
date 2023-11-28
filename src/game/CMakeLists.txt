@@ -15,8 +15,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-include(${CMAKE_CURRENT_LIST_DIR}/grpc.cmake)
-
 set (game_SRCS 
     AccountMgr.cpp
     AuraRemovalMgr.cpp
@@ -422,9 +420,6 @@ set (game_SRCS
     vmap/VMapManager2.h
     vmap/VMapTools.h
     vmap/WorldModel.h
-    text_filter.h
-    ${tf_grpc_hdrs}
-    ${tf_proto_hdrs}
 )
 
 
