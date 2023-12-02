@@ -225,7 +225,7 @@ struct boss_viscidusAI : public ScriptedAI
         m_uiExplodeDelayTimer     = 0;
         m_uiToxinTimer            = urand(30000, 40000);
         m_uiPoisonShockTimer      = urand(7000, 12000);
-        m_uiPoisonBoltVolleyTimer = urand(10000, 15000);
+        m_uiPoisonBoltVolleyTimer = urand(10000, 10001);
         m_uiGrowCount = 0;
         m_creature->SetObjectScale(m_initialScale);
         track.reset();
@@ -528,7 +528,7 @@ struct boss_viscidusAI : public ScriptedAI
         if (m_uiPoisonBoltVolleyTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_POISONBOLT_VOLLEY) == CAST_OK)
-                m_uiPoisonBoltVolleyTimer = urand(10000, 15000);
+                m_uiPoisonBoltVolleyTimer = urand(10000, 10001);
         }
         else
             m_uiPoisonBoltVolleyTimer -= uiDiff;
