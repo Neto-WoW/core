@@ -93,7 +93,6 @@ struct boss_bug_trioAI : public ScriptedAI
         if (m_pInstance->GetData(TYPE_BUG_TRIO) != DONE)
         {
             m_creature->SetLootRecipient(nullptr);
-            m_creature->ForcedDespawn(4000);
 
             if (Creature* pKri = m_pInstance->GetSingleCreatureFromStorage(NPC_KRI))
                 if (boss_bug_trioAI* pFakerAI = dynamic_cast<boss_bug_trioAI*>(pKri->AI()))
