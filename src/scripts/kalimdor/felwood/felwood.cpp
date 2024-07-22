@@ -123,29 +123,29 @@ CreatureAI* GetAI_npc_tainted_ooze(Creature* pCreature)
 
 enum
 {
-    SAY_ESCORT_START                = -1001148,
-    SAY_FIRST_STOP                  = -1001149,
-    SAY_SECOND_STOP                 = -1001150,
-    SAY_AGGRO                       = -1001151,
-    SAY_FOUND_EQUIPMENT             = -1001152,
-    SAY_ESCAPE_DEMONS               = -1001153,
-    SAY_FRESH_AIR                   = -1001154,
-    SAY_TREY_BETRAYER               = -1001155,
-    SAY_TREY                        = -1001156,
-    SAY_TREY_ATTACK                 = -1001157,
-    SAY_ESCORT_COMPLETE             = -1001158,
+    SAY_ESCORT_START = -1001148,
+    SAY_FIRST_STOP = -1001149,
+    SAY_SECOND_STOP = -1001150,
+    SAY_AGGRO = -1001151,
+    SAY_FOUND_EQUIPMENT = -1001152,
+    SAY_ESCAPE_DEMONS = -1001153,
+    SAY_FRESH_AIR = -1001154,
+    SAY_TREY_BETRAYER = -1001155,
+    SAY_TREY = -1001156,
+    SAY_TREY_ATTACK = -1001157,
+    SAY_ESCORT_COMPLETE = -1001158,
 
-    SPELL_STRENGTH_ARKONARIN        = 18163,
-    SPELL_MORTAL_STRIKE             = 16856,
-    SPELL_CLEAVE                    = 15496,
+    SPELL_STRENGTH_ARKONARIN = 18163,
+    SPELL_MORTAL_STRIKE = 16856,
+    SPELL_CLEAVE = 15496,
 
-    QUEST_ID_RESCUE_JAEDENAR        = 5203,
-    NPC_JAEDENAR_LEGIONNAIRE        = 9862,
-    NPC_SPIRT_TREY                  = 11141,
-    GO_ARKONARIN_CHEST              = 176225,
-    GO_ARKONARIN_CAGE               = 176306,
+    QUEST_ID_RESCUE_JAEDENAR = 5203,
+    NPC_JAEDENAR_LEGIONNAIRE = 9862,
+    NPC_SPIRT_TREY = 11141,
+    GO_ARKONARIN_CHEST = 176225,
+    GO_ARKONARIN_CAGE = 176306,
 
-    NPC_ARKO_NARIN                  = 11018
+    NPC_ARKO_NARIN = 11018
 };
 
 struct npc_captured_arkonarinAI : npc_escortAI
@@ -200,66 +200,66 @@ struct npc_captured_arkonarinAI : npc_escortAI
     {
         switch (uiPointId)
         {
-            case 0:
-                if (Player* pPlayer = GetPlayerForEscort())
-                    DoScriptText(SAY_ESCORT_START, m_creature, pPlayer);
-                break;
-            case 14:
-                DoScriptText(SAY_FIRST_STOP, m_creature);
-                break;
-            case 34:
-                DoScriptText(SAY_SECOND_STOP, m_creature);
-                SetRun();
-                break;
-            case 38:
-                if (GameObject* pChest = GetClosestGameObjectWithEntry(m_creature, GO_ARKONARIN_CHEST, 5.0f))
-                    pChest->Use(m_creature);
-                m_creature->HandleEmote(EMOTE_ONESHOT_KNEEL);
-                break;
-            case 39:
-                DoCastSpellIfCan(m_creature, SPELL_STRENGTH_ARKONARIN);
-                break;
-            case 40:
-                if (Player* pPlayer = GetPlayerForEscort())
-                    m_creature->SetFacingToObject(pPlayer);
-                m_bCanAttack = true;
-                DoScriptText(SAY_FOUND_EQUIPMENT, m_creature);
-                m_creature->UpdateEntry(NPC_ARKO_NARIN);
-                m_creature->SetFactionTemporary(FACTION_ESCORT_N_NEUTRAL_ACTIVE, TEMPFACTION_RESTORE_RESPAWN);
-                m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
-                break;
-            case 41:
-                DoScriptText(SAY_ESCAPE_DEMONS, m_creature);
-                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5082.068f, -490.084f, 296.856f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5084.135f, -489.187f, 296.832f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5085.676f, -488.518f, 296.824f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
-                break;
-            case 43:
-                SetRun(false);
-                break;
-            case 104:
-                DoScriptText(SAY_FRESH_AIR, m_creature);
-                break;
-            case 105:
-                m_creature->SummonCreature(NPC_SPIRT_TREY, 4844.839f, -395.763f, 350.603f, 6.25f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
-                break;
-            case 106:
-                DoScriptText(SAY_TREY, m_creature);
-                break;
-            case 107:
-                if (Creature* pTrey = m_creature->GetMap()->GetCreature(m_treyGuid))
-                    AttackStart(pTrey);
-                break;
-            case 108:
-                if (Player* pPlayer = GetPlayerForEscort())
-                    m_creature->SetFacingToObject(pPlayer);
-                DoScriptText(SAY_ESCORT_COMPLETE, m_creature);
-                break;
-            case 109:
-                if (Player* pPlayer = GetPlayerForEscort())
-                    pPlayer->GroupEventHappens(QUEST_ID_RESCUE_JAEDENAR, m_creature);
-                SetRun();
-                break;
+        case 0:
+            if (Player* pPlayer = GetPlayerForEscort())
+                DoScriptText(SAY_ESCORT_START, m_creature, pPlayer);
+            break;
+        case 14:
+            DoScriptText(SAY_FIRST_STOP, m_creature);
+            break;
+        case 34:
+            DoScriptText(SAY_SECOND_STOP, m_creature);
+            SetRun();
+            break;
+        case 38:
+            if (GameObject* pChest = GetClosestGameObjectWithEntry(m_creature, GO_ARKONARIN_CHEST, 5.0f))
+                pChest->Use(m_creature);
+            m_creature->HandleEmote(EMOTE_ONESHOT_KNEEL);
+            break;
+        case 39:
+            DoCastSpellIfCan(m_creature, SPELL_STRENGTH_ARKONARIN);
+            break;
+        case 40:
+            if (Player* pPlayer = GetPlayerForEscort())
+                m_creature->SetFacingToObject(pPlayer);
+            m_bCanAttack = true;
+            DoScriptText(SAY_FOUND_EQUIPMENT, m_creature);
+            m_creature->UpdateEntry(NPC_ARKO_NARIN);
+            m_creature->SetFactionTemporary(FACTION_ESCORT_N_NEUTRAL_ACTIVE, TEMPFACTION_RESTORE_RESPAWN);
+            m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+            break;
+        case 41:
+            DoScriptText(SAY_ESCAPE_DEMONS, m_creature);
+            m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5082.068f, -490.084f, 296.856f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE * IN_MILLISECONDS);
+            m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5084.135f, -489.187f, 296.832f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE * IN_MILLISECONDS);
+            m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5085.676f, -488.518f, 296.824f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE * IN_MILLISECONDS);
+            break;
+        case 43:
+            SetRun(false);
+            break;
+        case 104:
+            DoScriptText(SAY_FRESH_AIR, m_creature);
+            break;
+        case 105:
+            m_creature->SummonCreature(NPC_SPIRT_TREY, 4844.839f, -395.763f, 350.603f, 6.25f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE * IN_MILLISECONDS);
+            break;
+        case 106:
+            DoScriptText(SAY_TREY, m_creature);
+            break;
+        case 107:
+            if (Creature* pTrey = m_creature->GetMap()->GetCreature(m_treyGuid))
+                AttackStart(pTrey);
+            break;
+        case 108:
+            if (Player* pPlayer = GetPlayerForEscort())
+                m_creature->SetFacingToObject(pPlayer);
+            DoScriptText(SAY_ESCORT_COMPLETE, m_creature);
+            break;
+        case 109:
+            if (Player* pPlayer = GetPlayerForEscort())
+                pPlayer->GroupEventHappens(QUEST_ID_RESCUE_JAEDENAR, m_creature);
+            SetRun();
+            break;
         }
     }
 
@@ -289,6 +289,12 @@ struct npc_captured_arkonarinAI : npc_escortAI
 
         DoMeleeAttackIfReady();
     }
+
+    void QuestFailed() override
+    {
+        // Despawn the NPC so it can respawn properly
+        m_creature->DespawnOrUnsummon();
+    }
 };
 
 CreatureAI* GetAI_npc_captured_arkonarin(Creature* pCreature)
@@ -309,7 +315,6 @@ bool QuestAccept_npc_captured_arkonarin(Player* pPlayer, Creature* pCreature, Qu
 
             if (GameObject* pCage = GetClosestGameObjectWithEntry(pCreature, GO_ARKONARIN_CAGE, 5.0f))
                 pCage->Use(pCreature);
-
         }
     }
     return true;
