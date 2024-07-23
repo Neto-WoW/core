@@ -288,12 +288,27 @@ struct npc_captured_arkonarinAI : npc_escortAI
         }
 
         DoMeleeAttackIfReady();
-    }
 
-    void QuestFailed() override
+    } void JustDied(Unit* /*killer*/) override
     {
         // Despawn the NPC so it can respawn properly
-        m_creature->DespawnOrUnsummon();
+        me->DespawnOrUnsummon();
+    }
+
+    void MovementInform(uint32 /*type*/, uint32 id) override
+    {
+        // Check if the NPC is too far away from the player and reset if necessary
+        if (id == WAYPOINT_MOTION_TYPE)
+        {
+            if (Player* pPlayer = GetPlayerForEscort())
+            {
+                float distance = me->GetDistance(pPlayer);
+                if (distance > 100.0f) // Arbitrary distance, adjust as needed
+                {
+                    me->DespawnOrUnsummon(); // Respawn NPC if too far away
+                }
+            }
+        }
     }
 };
 
