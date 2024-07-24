@@ -289,7 +289,9 @@ struct npc_captured_arkonarinAI : npc_escortAI
 
         DoMeleeAttackIfReady();
 
-    } void JustDied(Unit* /*killer*/) override
+    } 
+    
+    void JustDied(Unit* /*killer*/) override
     {
         // Despawn the NPC so it can respawn properly
         me->DespawnOrUnsummon();
